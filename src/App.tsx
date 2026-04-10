@@ -251,7 +251,7 @@ export default function App() {
     const handleNegotiate = () => {
     const productName = selectedProduct.name || selectedProduct.product_name || selectedProduct.title || 'Product';
     const message = `Hi Talica Investment! I'm interested in ${quantity}x ${productName} (${variant}).\n\nI'd like to negotiate the price. Can we bargain?\n\nProduct Link: ${window.location.href}`;
-    const whatsappUrl = `https://wa.me/254710562881?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/254702675717?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
@@ -334,7 +334,7 @@ export default function App() {
   const handleWhatsAppClick = () => {
     const productName = selectedProduct.name || selectedProduct.product_name || selectedProduct.title || 'Product';
     const message = `Hi Talica Investment! I just placed an order for ${quantity}x ${productName} (${variant}).\n\nPlease confirm my order.`;
-    const whatsappUrl = `https://wa.me/254710562881?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/254702675717?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 

@@ -2,7 +2,7 @@ export const STORE_CONFIG = {
   STORE_NAME: "Talica Investment",
   CURRENCY: "KSh",
   DEFAULT_COUNTRY: "Kenya",
-  WHATSAPP_NUMBER: "+254710562881",
+  WHATSAPP_NUMBER: "+254702675717",
   CONTACT_EMAIL: "shut92759@hotmail.com",
   
   PRODUCTS: [
