@@ -11,7 +11,7 @@ export const STORE_CONFIG = {
       name: "Premium L-Shaped Sofa",
       category: "Furniture",
       price: 45000,
-      description: "Luxurious 5-seater L-shaped sofa with premium fabric. Perfect for modern Nairobi living rooms.",
+      description: "Luxurious 5-seater L-shaped sofa with premium fabric. Perfect for modern Kenyan living rooms.",
       image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800",
       variants: ["Grey", "Navy Blue", "Beige"]
     },
@@ -29,7 +29,7 @@ export const STORE_CONFIG = {
       name: "Toyota Vitz 2016 (Import)",
       category: "Cars",
       price: 1200000,
-      description: "Clean, low mileage, fuel-efficient hatchback. Perfect for Nairobi traffic.",
+      description: "Clean, low mileage, fuel-efficient hatchback. Perfect for Kenyan traffic.",
       image: "https://images.unsplash.com/photo-1590362891991-f776e747a588?auto=format&fit=crop&q=80&w=800",
       variants: ["Silver", "White", "Black"]
     },

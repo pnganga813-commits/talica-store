@@ -39,6 +39,122 @@ const DEFAULT_HERO_SLIDES = [
   }
 ];
 
+const BULK_THRESHOLD = 5;
+const BULK_DISCOUNT_PERCENT = 10;
+
+const SplashScreen = ({ onComplete }: { onComplete: () => void, key?: string }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.8, ease: "easeInOut" }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-slate-950 overflow-hidden"
+    >
+      {/* Background Glow */}
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1.2, opacity: 0.15 }}
+        transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+        className="absolute w-[500px] h-[500px] bg-teal-500 rounded-full blur-[100px]"
+      />
+
+      <div className="relative flex flex-col items-center">
+        {/* Animated Icon Container */}
+        <motion.div
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ 
+            type: "spring",
+            stiffness: 260,
+            damping: 20,
+            delay: 0.2 
+          }}
+          className="relative w-32 h-32 mb-8"
+        >
+          {/* Outer Ring */}
+          <svg className="w-full h-full" viewBox="0 0 100 100">
+            <motion.circle
+              cx="50"
+              cy="50"
+              r="45"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-teal-600 dark:text-teal-400"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 1.5, ease: "easeInOut" }}
+            />
+          </svg>
+          
+          {/* Center Logo (Stylized T) */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+              className="text-5xl font-black text-teal-700 dark:text-teal-300"
+            >
+              T
+            </motion.div>
+          </div>
+
+          {/* Sparkles */}
+          {[...Array(4)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: [0, 1, 0], scale: [0, 1.2, 0] }}
+              transition={{ 
+                delay: 1 + (i * 0.2), 
+                duration: 1.5, 
+                repeat: Infinity,
+                repeatDelay: 1
+              }}
+              className="absolute text-yellow-400"
+              style={{
+                top: `${20 + (i * 20)}%`,
+                left: `${i % 2 === 0 ? -10 : 90}%`
+              }}
+            >
+              <Sparkles className="w-6 h-6" />
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Store Name */}
+        <div className="overflow-hidden">
+          <motion.h1
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 1, duration: 0.8, ease: "easeOut" }}
+            className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 dark:text-white text-center"
+          >
+            TALICA
+            <span className="block text-lg md:text-xl font-medium tracking-[0.3em] text-teal-600 dark:text-teal-400 mt-2 uppercase">
+              Investment Store
+            </span>
+          </motion.h1>
+        </div>
+
+        {/* Loading Bar */}
+        <div className="mt-12 w-48 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ x: "-100%" }}
+            animate={{ x: "100%" }}
+            transition={{ 
+              duration: 2.5, 
+              ease: "easeInOut",
+              onComplete: () => setTimeout(onComplete, 500)
+            }}
+            className="w-full h-full bg-teal-600 dark:text-teal-400"
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<any[]>([]);
@@ -63,6 +179,7 @@ export default function App() {
   const [orderedProducts, setOrderedProducts] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   
   const orderFormRef = useRef<HTMLDivElement>(null);
   const productGridRef = useRef<HTMLDivElement>(null);
@@ -287,38 +404,35 @@ export default function App() {
     }
 
     try {
-      // Build the most complete payload possible with fallbacks for missing fields
       const productName = selectedProduct.name || selectedProduct.product_name || selectedProduct.title || 'Product';
       const productPrice = selectedProduct.price || selectedProduct.unit_price || 0;
+      
+      const subtotal = productPrice * quantity;
+      const hasDiscount = quantity >= BULK_THRESHOLD;
+      const discountAmount = hasDiscount ? (subtotal * BULK_DISCOUNT_PERCENT) / 100 : 0;
+      const finalTotal = subtotal - discountAmount;
 
-      const basePayload = {
-        ...data,
+      const orderData = {
+        customer_name: data.customer_name,
+        phone: data.phone,
+        email: data.email,
+        address: data.address,
+        city: data.city,
         product_name: productName,
         product_variant: variant || 'Standard',
-        quantity: quantity || 1,
-        status: 'pending'
+        quantity: quantity,
+        notes: hasDiscount 
+          ? `${data.notes || ''}\n[Bulk Discount Applied: ${BULK_DISCOUNT_PERCENT}% off. Total: ${STORE_CONFIG.CURRENCY} ${finalTotal.toLocaleString()}]`.trim()
+          : data.notes,
+        status: 'pending',
+        created_at: new Date().toISOString()
       };
 
-      // Try inserting with price first
       const { error } = await supabase
         .from('orders')
-        .insert([
-          {
-            ...basePayload,
-            total_price: productPrice * quantity,
-          }
-        ]);
+        .insert([orderData]);
 
-      if (error) {
-        console.warn('First insert failed, retrying with minimal payload:', error.message);
-        // If that fails, try the absolute minimal payload that we know should work
-        // We remove 'total_price' and 'user_id' (which was already removed from basePayload)
-        const { error: retryError } = await supabase
-          .from('orders')
-          .insert([basePayload]);
-        
-        if (retryError) throw retryError;
-      }
+      if (error) throw error;
       
       setSubmitStatus('success');
       form.reset();
@@ -340,6 +454,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-50 selection:bg-teal-100 dark:selection:bg-teal-900/30 transition-colors duration-300">
+      <AnimatePresence mode="wait">
+        {showSplash && (
+          <SplashScreen key="splash" onComplete={() => setShowSplash(false)} />
+        )}
+      </AnimatePresence>
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
@@ -590,7 +709,7 @@ export default function App() {
                   <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 mb-5">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 text-xs font-medium border border-teal-100 dark:border-teal-800/50">
                       <MapPin className="w-3 h-3" />
-                      Free Delivery in Nairobi
+                      Free Delivery Nationwide in Kenya
                     </div>
                     <h1 className="text-lg md:text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                       Premium Quality. Delivered.
@@ -999,7 +1118,7 @@ export default function App() {
 
                           <div className="grid sm:grid-cols-2 gap-6">
                             <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">City/Area in Nairobi *</label>
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">City/Area in Kenya *</label>
                               <input 
                                 type="text" 
                                 name="city"
@@ -1091,13 +1210,28 @@ export default function App() {
                             <span>Subtotal</span>
                             <span>{STORE_CONFIG.CURRENCY} {((selectedProduct.price || 0) * quantity).toLocaleString()}</span>
                           </div>
+                          
+                          {quantity >= BULK_THRESHOLD && (
+                            <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                              <span>Bulk Discount ({BULK_DISCOUNT_PERCENT}%)</span>
+                              <span>-{STORE_CONFIG.CURRENCY} {(((selectedProduct.price || 0) * quantity * BULK_DISCOUNT_PERCENT) / 100).toLocaleString()}</span>
+                            </div>
+                          )}
+
                           <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                            <span>Delivery (Nairobi)</span>
+                            <span>Delivery (Kenya)</span>
                             <span className="text-emerald-600 dark:text-emerald-400 font-medium">Free</span>
                           </div>
                           <div className="flex justify-between text-xl font-bold pt-4 border-t border-slate-200 dark:border-slate-700">
                             <span className="dark:text-white">Total</span>
-                            <span className="text-teal-700 dark:text-teal-400">{STORE_CONFIG.CURRENCY} {((selectedProduct.price || 0) * quantity).toLocaleString()}</span>
+                            <span className="text-teal-700 dark:text-teal-400">
+                              {STORE_CONFIG.CURRENCY} {
+                                (
+                                  ((selectedProduct.price || 0) * quantity) - 
+                                  (quantity >= BULK_THRESHOLD ? ((selectedProduct.price || 0) * quantity * BULK_DISCOUNT_PERCENT) / 100 : 0)
+                                ).toLocaleString()
+                              }
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1174,7 +1308,7 @@ export default function App() {
               </div>
               {STORE_CONFIG.STORE_NAME}
             </div>
-            <p className="max-w-sm">Premium items delivered to your doorstep in Nairobi. Safe, fast, and reliable.</p>
+            <p className="max-w-sm">Premium items delivered to your doorstep anywhere in Kenya. Safe, fast, and reliable.</p>
           </div>
           <div className="md:text-right space-y-2">
             <p className="text-white font-medium mb-4">Contact Us</p>
