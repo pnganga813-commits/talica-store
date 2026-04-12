@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { STORE_CONFIG } from './config';
 import { supabase } from './lib/supabase';
-import { ShoppingBag, Clock, CheckCircle2, AlertCircle, Search, MessageCircle, MapPin, X, Sun, Moon, LogOut, Mail, Sparkles, PlayCircle, RefreshCw, ChevronDown, Bell } from 'lucide-react';
+import { ShoppingBag, Clock, CheckCircle2, AlertCircle, Search, MessageCircle, MapPin, X, Sun, Moon, LogOut, Mail, Sparkles, PlayCircle, RefreshCw, ChevronDown, Bell, Heart, Facebook, Instagram, Twitter, Youtube } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const SofaIcon = ({ className }: { className?: string }) => (
@@ -140,14 +140,15 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void, key?: string }) 
         {/* Loading Bar */}
         <div className="mt-12 w-48 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
           <motion.div
-            initial={{ x: "-100%" }}
-            animate={{ x: "100%" }}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            style={{ originX: 0 }}
             transition={{ 
-              duration: 2.5, 
-              ease: "easeInOut",
-              onComplete: () => setTimeout(onComplete, 500)
+              duration: 1.5, 
+              ease: "easeInOut"
             }}
-            className="w-full h-full bg-teal-600 dark:text-teal-400"
+            onAnimationComplete={() => setTimeout(onComplete, 500)}
+            className="w-full h-full bg-teal-600 dark:bg-teal-400"
           />
         </div>
       </div>
@@ -168,6 +169,11 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [wishlist, setWishlist] = useState<string[]>(() => {
+    const saved = localStorage.getItem('wishlist');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [showWishlistOnly, setShowWishlistOnly] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -183,6 +189,19 @@ export default function App() {
   
   const orderFormRef = useRef<HTMLDivElement>(null);
   const productGridRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
+
+  const toggleWishlist = (productId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setWishlist(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId) 
+        : [...prev, productId]
+    );
+  };
 
   const fetchProducts = async () => {
     setIsLoadingProducts(true);
@@ -269,16 +288,14 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (heroSlides.length <= 1) return;
+    
     const interval = setInterval(() => {
-      setHeroSlides(currentSlides => {
-        if (currentSlides.length > 0) {
-          setCurrentHeroIndex((prev) => (prev + 1) % currentSlides.length);
-        }
-        return currentSlides;
-      });
+      setCurrentHeroIndex((prev) => (prev + 1) % heroSlides.length);
     }, 5000);
+    
     return () => clearInterval(interval);
-  }, []);
+  }, [heroSlides.length, currentHeroIndex]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -326,18 +343,23 @@ export default function App() {
     }
   }, [user, products]);
 
-  const filteredProducts = products.filter(p => {
-    const name = p.name || p.product_name || p.title || '';
-    const category = p.category || '';
-    const description = p.description || '';
-    const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      const name = p.name || p.product_name || p.title || '';
+      const category = p.category || '';
+      const description = p.description || '';
+      const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            category.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'All' || category === selectedCategory;
+      const matchesWishlist = !showWishlistOnly || wishlist.includes(p.id);
+      return matchesSearch && matchesCategory && matchesWishlist;
+    });
+  }, [products, searchQuery, selectedCategory, showWishlistOnly, wishlist]);
 
-  const categories = ['All', ...Array.from(new Set(products.map(p => p.category || 'Uncategorized')))];
+  const categories = useMemo(() => {
+    return ['All', ...Array.from(new Set(products.map(p => p.category || 'Uncategorized')))];
+  }, [products]);
 
   const handleOrderClick = (product: any) => {
     setSelectedProduct(product);
@@ -494,6 +516,26 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            {/* Wishlist Button */}
+            <button 
+              onClick={() => {
+                setShowWishlistOnly(!showWishlistOnly);
+                if (!showWishlistOnly) {
+                  setSelectedCategory('All');
+                  setSearchQuery('');
+                }
+              }}
+              className={`p-2 rounded-full transition-all relative group ${showWishlistOnly ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+              title={showWishlistOnly ? "Show All Products" : "Show Wishlist"}
+            >
+              <Heart className={`w-5 h-5 ${showWishlistOnly ? 'fill-current' : 'group-hover:text-rose-500 transition-colors'}`} />
+              {wishlist.length > 0 && !showWishlistOnly && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 animate-in zoom-in duration-300">
+                  {wishlist.length}
+                </span>
+              )}
+            </button>
+
             {/* Notification Center */}
             <div className="relative">
               <button 
@@ -604,49 +646,49 @@ export default function App() {
               <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 
                 {/* Animated Banner */}
-                <div className="relative rounded-3xl overflow-hidden mb-6 bg-slate-900 h-[300px] md:h-[400px] lg:h-[500px] shadow-2xl">
-                  <AnimatePresence mode="wait">
+                <div className="relative rounded-3xl overflow-hidden mb-6 bg-slate-900 h-[260px] md:h-[340px] lg:h-[400px] shadow-2xl">
+                  <AnimatePresence>
                     <motion.div
                       key={currentHeroIndex}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.8 }}
+                      initial={{ opacity: 0, x: 40 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -40 }}
+                      transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
                       className="absolute inset-0"
                     >
                       <img 
                         src={heroSlides[currentHeroIndex].image} 
                         alt="Hero" 
-                        className="absolute inset-0 w-full h-full object-cover opacity-60"
+                        className="absolute inset-0 w-full h-full object-cover opacity-50 scale-105"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/50 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/40 to-transparent" />
                       
-                      <div className="relative h-full flex flex-col justify-center px-8 md:px-16 max-w-3xl">
-                        <div className="flex items-center gap-2 text-[#D4AF37] font-semibold tracking-wider text-xs mb-3">
+                      <div className="relative h-full flex flex-col justify-center px-8 md:px-16 max-w-2xl">
+                        <div className="flex items-center gap-2 text-[#D4AF37] font-bold tracking-[0.2em] text-[10px] mb-3 uppercase">
                           <Sparkles className="w-3 h-3" />
-                          TRENDING NOW
+                          Trending Now
                         </div>
-                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+                        <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white mb-3 leading-[1.1] tracking-tight">
                           {heroSlides[currentHeroIndex].title}
                         </h2>
-                        <p className="text-base text-slate-300 mb-6 max-w-xl line-clamp-2">
+                        <p className="text-sm md:text-base text-slate-300 mb-6 max-w-lg line-clamp-2 font-medium">
                           {heroSlides[currentHeroIndex].subtitle}
                         </p>
                         <div className="flex flex-wrap items-center gap-3">
                           <button 
                             onClick={() => productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                            className="bg-[#D4AF37] hover:bg-[#C5A028] text-slate-900 px-6 py-2.5 rounded-full font-bold text-sm transition-colors flex items-center gap-2"
+                            className="bg-[#D4AF37] hover:bg-[#C5A028] text-slate-900 px-6 py-2.5 rounded-xl font-black text-xs md:text-sm transition-all hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg shadow-[#D4AF37]/20"
                           >
-                            {heroSlides[currentHeroIndex].orderText || 'Shop Now'}
+                            {heroSlides[currentHeroIndex].orderText || 'Order Now'}
                             {heroSlides[currentHeroIndex].price > 0 && (
-                              <span className="bg-slate-900/20 px-2 py-0.5 rounded-full text-[10px]">
+                              <span className="bg-slate-900/20 px-2 py-0.5 rounded-md text-[10px]">
                                 {STORE_CONFIG.CURRENCY} {heroSlides[currentHeroIndex].price.toLocaleString()}
                               </span>
                             )}
                           </button>
                           <button 
                             onClick={() => setIsVideoModalOpen(true)}
-                            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full font-medium text-sm backdrop-blur-sm transition-colors"
+                            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm backdrop-blur-md transition-all hover:scale-105 active:scale-95 border border-white/10"
                           >
                             <PlayCircle className="w-4 h-4" />
                             Play Video
@@ -760,67 +802,102 @@ export default function App() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-4">
-                  {filteredProducts.map((product, i) => (
-                    <motion.div 
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      whileHover={{ y: -4 }}
-                      transition={{ duration: 0.4, delay: i * 0.05 }}
-                      className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-2xl hover:shadow-teal-900/10 dark:hover:shadow-teal-900/30 transition-all group flex flex-col cursor-pointer relative"
-                      onClick={() => handleOrderClick(product)}
-                    >
-                      <div className="aspect-square relative overflow-hidden bg-slate-100 dark:bg-slate-900">
-                        <img 
-                          src={product.image || product.image_url || product.imageUrl || product.media_url || `https://picsum.photos/seed/${product.id}/400/400`} 
-                          alt={product.name || product.title}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${product.id}/400/400`;
-                          }}
-                        />
+                  {filteredProducts.length > 0 ? (
+                    filteredProducts.map((product, i) => (
+                      <motion.div 
+                        key={product.id}
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        whileHover={{ y: -4 }}
+                        transition={{ duration: 0.4, delay: i * 0.05 }}
+                        className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-2xl hover:shadow-teal-900/10 dark:hover:shadow-teal-900/30 transition-all group flex flex-col cursor-pointer relative"
+                        onClick={() => handleOrderClick(product)}
+                      >
+                        {/* Wishlist Toggle */}
+                        <button
+                          onClick={(e) => toggleWishlist(product.id, e)}
+                          className="absolute top-2 right-2 z-20 p-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 transition-transform"
+                        >
+                          <Heart 
+                            className={`w-3.5 h-3.5 ${wishlist.includes(product.id) ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} 
+                          />
+                        </button>
                         
-                        {/* Hover Overlay */}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                          <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            whileHover={{ scale: 1, opacity: 1 }}
-                            className="bg-white text-slate-900 px-4 py-2 rounded-full text-xs font-bold shadow-lg flex items-center gap-2"
-                          >
-                            <Search className="w-3 h-3" />
-                            View Details
-                          </motion.div>
-                        </div>
+                        <div className="aspect-square relative overflow-hidden bg-slate-100 dark:bg-slate-900">
+                          <img 
+                            src={product.image || product.image_url || product.imageUrl || product.media_url || `https://picsum.photos/seed/${product.id}/400/400`} 
+                            alt={product.name || product.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${product.id}/400/400`;
+                            }}
+                          />
+                          
+                          {/* Hover Overlay */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <motion.div
+                              initial={{ scale: 0.8, opacity: 0 }}
+                              whileHover={{ scale: 1, opacity: 1 }}
+                              className="bg-white text-slate-900 px-4 py-2 rounded-full text-xs font-bold shadow-lg flex items-center gap-2"
+                            >
+                              <Search className="w-3 h-3" />
+                              View Details
+                            </motion.div>
+                          </div>
 
-                        <div className="absolute top-2 left-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 shadow-sm z-10">
-                          {product.category}
-                        </div>
-                      </div>
-                      <div className="p-3 md:p-4 flex flex-col flex-1">
-                        <h3 className="text-sm md:text-base font-bold mb-1 line-clamp-2 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
-                          {product.name || product.product_name || product.title || 'Product'}
-                        </h3>
-                        {(product.stock_quantity !== undefined || product.stock !== undefined) && (
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <div className={`w-1.5 h-1.5 rounded-full ${(product.stock_quantity > 0 || product.stock > 0) ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                              Stock: {product.stock_quantity ?? product.stock}
-                            </span>
-                          </div>
-                        )}
-                        <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mb-3 line-clamp-2 flex-1">{product.description}</p>
-                        <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50 dark:border-slate-700/50">
-                          <div className="font-bold text-sm md:text-lg text-teal-700 dark:text-teal-400">
-                            {STORE_CONFIG.CURRENCY} {product.price.toLocaleString()}
-                          </div>
-                          <div className="bg-slate-900 dark:bg-teal-600 text-white p-2 rounded-lg group-hover:bg-teal-600 dark:group-hover:bg-teal-500 transition-colors">
-                            <ShoppingBag className="w-4 h-4" />
+                          <div className="absolute top-2 left-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 shadow-sm z-10">
+                            {product.category}
                           </div>
                         </div>
+                        <div className="p-3 md:p-4 flex flex-col flex-1">
+                          <h3 className="text-sm md:text-base font-bold mb-1 line-clamp-2 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                            {product.name || product.product_name || product.title || 'Product'}
+                          </h3>
+                          {(product.stock_quantity !== undefined || product.stock !== undefined) && (
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <div className={`w-1.5 h-1.5 rounded-full ${(product.stock_quantity > 0 || product.stock > 0) ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                Stock: {product.stock_quantity ?? product.stock}
+                              </span>
+                            </div>
+                          )}
+                          <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mb-3 line-clamp-2 flex-1">{product.description}</p>
+                          <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50 dark:border-slate-700/50">
+                            <div className="font-bold text-sm md:text-lg text-teal-700 dark:text-teal-400">
+                              {STORE_CONFIG.CURRENCY} {product.price.toLocaleString()}
+                            </div>
+                            <div className="bg-slate-900 dark:bg-teal-600 text-white p-2 rounded-lg group-hover:bg-teal-600 dark:group-hover:bg-teal-500 transition-colors">
+                              <ShoppingBag className="w-4 h-4" />
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))
+                  ) : (
+                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-center">
+                      <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                        <Heart className="w-10 h-10 text-slate-300 dark:text-slate-600" />
                       </div>
-                    </motion.div>
-                  ))}
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                        {showWishlistOnly ? "Your wishlist is empty" : "No products found"}
+                      </h3>
+                      <p className="text-slate-500 dark:text-slate-400 max-w-xs">
+                        {showWishlistOnly 
+                          ? "Products you heart will appear here for you to find them easily later." 
+                          : "Try adjusting your search or category filters to find what you're looking for."}
+                      </p>
+                      {showWishlistOnly && (
+                        <button 
+                          onClick={() => setShowWishlistOnly(false)}
+                          className="mt-6 text-teal-600 dark:text-teal-400 font-bold hover:underline"
+                        >
+                          Back to all products
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </section>
@@ -967,9 +1044,22 @@ export default function App() {
                     <div className="inline-block px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 text-[10px] font-bold mb-2 uppercase tracking-wider">
                       {selectedProduct.category}
                     </div>
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2 leading-tight">
-                      {selectedProduct.name || selectedProduct.product_name || selectedProduct.title || 'Product'}
-                    </h1>
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
+                      <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white leading-tight">
+                        {selectedProduct.name || selectedProduct.product_name || selectedProduct.title || 'Product'}
+                      </h1>
+                      <button
+                        onClick={() => toggleWishlist(selectedProduct.id)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
+                          wishlist.includes(selectedProduct.id)
+                            ? 'bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <Heart className={`w-5 h-5 ${wishlist.includes(selectedProduct.id) ? 'fill-current' : ''}`} />
+                        <span className="text-sm font-bold">{wishlist.includes(selectedProduct.id) ? 'In Wishlist' : 'Add to Wishlist'}</span>
+                      </button>
+                    </div>
                     <div className="text-2xl lg:text-3xl font-bold text-teal-700 dark:text-teal-400 mb-4">
                       {STORE_CONFIG.CURRENCY} {selectedProduct.price.toLocaleString()}
                     </div>
@@ -1300,24 +1390,74 @@ export default function App() {
 
       {/* Footer */}
       <footer className="bg-slate-900 dark:bg-black text-slate-400 py-16 border-t border-slate-800 dark:border-slate-900 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center">
-          <div>
-            <div className="flex items-center gap-2 font-bold text-white text-2xl mb-4">
-              <div className="w-10 h-10 bg-[#0F292F] rounded-lg flex items-center justify-center text-[#D4AF37]">
-                <SofaIcon className="w-6 h-6" />
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid md:grid-cols-3 gap-12">
+            <div>
+              <div className="flex items-center gap-2 font-bold text-white text-2xl mb-6">
+                <div className="w-10 h-10 bg-[#0F292F] rounded-lg flex items-center justify-center text-[#D4AF37]">
+                  <SofaIcon className="w-6 h-6" />
+                </div>
+                {STORE_CONFIG.STORE_NAME}
               </div>
-              {STORE_CONFIG.STORE_NAME}
+              <p className="max-w-sm leading-relaxed">Premium items delivered to your doorstep anywhere in Kenya. Safe, fast, and reliable.</p>
+              
+              <div className="mt-8 space-y-3">
+                <p className="flex items-center gap-3 text-sm">
+                  <Clock className="w-4 h-4 text-teal-500" />
+                  <span>Opening Days: <span className="text-white font-medium">Always open</span></span>
+                </p>
+                <p className="flex items-center gap-3 text-sm">
+                  <MapPin className="w-4 h-4 text-teal-500" />
+                  <span>Main Branch: <span className="text-white font-medium">Nairobi OTC</span></span>
+                </p>
+              </div>
             </div>
-            <p className="max-w-sm">Premium items delivered to your doorstep anywhere in Kenya. Safe, fast, and reliable.</p>
-          </div>
-          <div className="md:text-right space-y-2">
-            <p className="text-white font-medium mb-4">Contact Us</p>
-            <p className="flex items-center md:justify-end gap-2">
-              <MessageCircle className="w-4 h-4" /> WhatsApp: {STORE_CONFIG.WHATSAPP_NUMBER}
-            </p>
-            <p className="flex items-center md:justify-end gap-2">
-              <Mail className="w-4 h-4" /> Email: {STORE_CONFIG.CONTACT_EMAIL}
-            </p>
+
+            <div className="space-y-6">
+              <div>
+                <p className="text-white font-bold mb-4 uppercase tracking-wider text-xs">Our Locations</p>
+                <div className="space-y-3">
+                  <p className="flex items-start gap-3 text-sm">
+                    <MapPin className="w-4 h-4 text-teal-500 shrink-0 mt-0.5" />
+                    <span>Thika, Central Province, Kenya · Nairobi, Kenya + 1</span>
+                  </p>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-white font-bold mb-4 uppercase tracking-wider text-xs">Follow Us</p>
+                <div className="flex items-center gap-4">
+                  <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-teal-600 hover:text-white transition-all">
+                    <Facebook className="w-5 h-5" />
+                  </a>
+                  <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-teal-600 hover:text-white transition-all">
+                    <Instagram className="w-5 h-5" />
+                  </a>
+                  <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-teal-600 hover:text-white transition-all">
+                    <Twitter className="w-5 h-5" />
+                  </a>
+                  <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-teal-600 hover:text-white transition-all">
+                    <Youtube className="w-5 h-5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="md:text-right space-y-6">
+              <div>
+                <p className="text-white font-bold mb-4 uppercase tracking-wider text-xs">Contact Us</p>
+                <div className="space-y-3">
+                  <p className="flex items-center md:justify-end gap-3 text-sm">
+                    <MessageCircle className="w-4 h-4 text-teal-500" />
+                    <span>WhatsApp: <span className="text-white font-medium">{STORE_CONFIG.WHATSAPP_NUMBER}</span></span>
+                  </p>
+                  <p className="flex items-center md:justify-end gap-3 text-sm">
+                    <Mail className="w-4 h-4 text-teal-500" />
+                    <span>Email: <span className="text-white font-medium">{STORE_CONFIG.CONTACT_EMAIL}</span></span>
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-slate-800 dark:border-slate-900 text-sm text-center md:text-left">
