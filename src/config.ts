@@ -1,5 +1,5 @@
 export const STORE_CONFIG = {
-  STORE_NAME: "Talica Investments",
+  STORE_NAME: "TALICA INVESTMENTS",
   CURRENCY: "KSh",
   DEFAULT_COUNTRY: "Kenya",
   WHATSAPP_NUMBER: "+254702675717",

@@ -9,11 +9,27 @@ import { supabase } from './lib/supabase';
 import { ShoppingBag, Clock, CheckCircle2, AlertCircle, Search, MessageCircle, MapPin, X, Sun, Moon, LogOut, Mail, Sparkles, PlayCircle, RefreshCw, ChevronDown, Bell, Heart, Facebook, Instagram, Twitter, Youtube } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-const SofaIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M20 10V7C20 5.89543 19.1046 5 18 5H6C4.89543 5 4 5.89543 4 7V10C2.89543 10 2 10.8954 2 12V17C2 17.5523 2.44772 18 3 18H4V20C4 20.5523 4.44772 21 5 21H6C6.55228 21 7 20.5523 7 20V18H17V20C17 20.5523 17.4477 21 18 21H19C19.5523 21 20 20.5523 20 20V18H21C21.5523 18 22 17.5523 22 17V12C22 10.8954 21.1046 10 20 10ZM6 7H11.5V11H6V7ZM18 7V11H12.5V7H18ZM4 16V12H11.5V16H4ZM20 16H12.5V12H20V16Z" />
-  </svg>
-);
+const SofaIcon = ({ className }: { className?: string }) => {
+  const [error, setError] = useState(false);
+  
+  if (error) {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 10V7C20 5.89543 19.1046 5 18 5H6C4.89543 5 4 5.89543 4 7V10C2.89543 10 2 10.8954 2 12V17C2 17.5523 2.44772 18 3 18H4V20C4 20.5523 4.44772 21 5 21H6C6.55228 21 7 20.5523 7 20V18H17V20C17 20.5523 17.4477 21 18 21H19C19.5523 21 20 20.5523 20 20V18H21C21.5523 18 22 17.5523 22 17V12C22 10.8954 21.1046 10 20 10ZM6 7H11.5V11H6V7ZM18 7V11H12.5V7H18ZM4 16V12H11.5V16H4ZM20 16H12.5V12H20V16Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <img 
+      src="/input_file_0.png" 
+      alt="Talica Investments Logo" 
+      className={`${className} object-contain`}
+      onError={() => setError(true)}
+      referrerPolicy="no-referrer"
+    />
+  );
+};
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -43,11 +59,28 @@ const BULK_THRESHOLD = 5;
 const BULK_DISCOUNT_PERCENT = 10;
 
 const SplashScreen = ({ onComplete }: { onComplete: () => void, key?: string }) => {
+  const [isExiting, setIsExiting] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsExiting(true);
+      setTimeout(onComplete, 500);
+    }, 3500); // Absolute fallback
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  const handleComplete = () => {
+    if (!isExiting) {
+      setIsExiting(true);
+      setTimeout(onComplete, 500);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.8, ease: "easeInOut" }}
+      animate={{ opacity: isExiting ? 0 : 1 }}
+      transition={{ duration: 0.5 }}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-slate-950 overflow-hidden"
     >
       {/* Background Glow */}
@@ -87,15 +120,15 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void, key?: string }) 
             />
           </svg>
           
-          {/* Center Logo (Stylized T) */}
-          <div className="absolute inset-0 flex items-center justify-center">
+          {/* Center Logo */}
+          <div className="absolute inset-0 flex items-center justify-center p-4">
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.8, duration: 0.5 }}
-              className="text-5xl font-black text-teal-700 dark:text-teal-300"
+              className="w-full h-full"
             >
-              T
+              <SofaIcon className="w-full h-full" />
             </motion.div>
           </div>
 
@@ -132,7 +165,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void, key?: string }) 
           >
             TALICA
             <span className="block text-lg md:text-xl font-medium tracking-[0.3em] text-teal-600 dark:text-teal-400 mt-2 uppercase">
-              Investment Store
+              Investments Store
             </span>
           </motion.h1>
         </div>
@@ -147,10 +180,17 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void, key?: string }) 
               duration: 1.5, 
               ease: "easeInOut"
             }}
-            onAnimationComplete={() => setTimeout(onComplete, 500)}
+            onAnimationComplete={handleComplete}
             className="w-full h-full bg-teal-600 dark:bg-teal-400"
           />
         </div>
+        
+        <button 
+          onClick={handleComplete}
+          className="mt-8 text-slate-400 text-xs hover:text-teal-500 transition-colors uppercase tracking-widest opacity-50 hover:opacity-100"
+        >
+          Skip
+        </button>
       </div>
     </motion.div>
   );
@@ -487,9 +527,7 @@ export default function App() {
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="font-bold text-xl tracking-tight flex items-center gap-2 shrink-0">
-            <div className="w-10 h-10 bg-[#0F292F] rounded-lg flex items-center justify-center text-[#D4AF37]">
-              <SofaIcon className="w-6 h-6" />
-            </div>
+            <SofaIcon className="w-12 h-12" />
             <span className="inline-block">{STORE_CONFIG.STORE_NAME}</span>
           </div>
           
@@ -1396,9 +1434,7 @@ export default function App() {
           <div className="grid md:grid-cols-3 gap-12">
             <div>
               <div className="flex items-center gap-2 font-bold text-white text-2xl mb-6">
-                <div className="w-10 h-10 bg-[#0F292F] rounded-lg flex items-center justify-center text-[#D4AF37]">
-                  <SofaIcon className="w-6 h-6" />
-                </div>
+                <SofaIcon className="w-12 h-12" />
                 {STORE_CONFIG.STORE_NAME}
               </div>
               <p className="max-w-sm leading-relaxed">Premium items delivered to your doorstep anywhere in Kenya. Safe, fast, and reliable.</p>
@@ -1408,17 +1444,34 @@ export default function App() {
                   <Clock className="w-4 h-4 text-teal-500" />
                   <span>Opening Days: <span className="text-white font-medium">Always open</span></span>
                 </p>
-                <p className="flex items-center gap-3 text-sm">
-                  <MapPin className="w-4 h-4 text-teal-500" />
+                <a 
+                  href="https://www.google.com/maps/search/?api=1&query=OTC+wholesale+mall+Nairobi" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 text-sm hover:text-teal-400 transition-colors group"
+                >
+                  <MapPin className="w-4 h-4 text-teal-500 group-hover:scale-110 transition-transform" />
                   <span>Main Branch: <span className="text-white font-medium">Nairobi OTC</span></span>
-                </p>
+                </a>
               </div>
             </div>
 
             <div className="space-y-6">
               <div>
                 <p className="text-white font-bold mb-4 uppercase tracking-wider text-xs">Our Locations</p>
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  <a 
+                    href="https://www.google.com/maps/search/?api=1&query=OTC+wholesale+mall+Nairobi" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-3 text-sm hover:text-teal-400 transition-colors group"
+                  >
+                    <MapPin className="w-4 h-4 text-teal-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                    <div className="flex flex-col">
+                      <span className="text-white font-medium">OTC wholesale mall</span>
+                      <span className="text-[10px] text-slate-500 uppercase tracking-widest">View on Google Maps</span>
+                    </div>
+                  </a>
                   <p className="flex items-start gap-3 text-sm">
                     <MapPin className="w-4 h-4 text-teal-500 shrink-0 mt-0.5" />
                     <span>Thika, Central Province, Kenya · Nairobi, Kenya + 1</span>
