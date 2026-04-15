@@ -389,7 +389,8 @@ export default function App() {
 
     const handleNegotiate = () => {
     const productName = selectedProduct.name || selectedProduct.product_name || selectedProduct.title || 'Product';
-    const message = `Hi Talica Investment! I'm interested in ${quantity}x ${productName} (${variant}).\n\nI'd like to negotiate the price. Can we bargain?\n\nProduct Link: ${window.location.href}`;
+    const productPrice = selectedProduct.price || selectedProduct.unit_price || 0;
+    const message = `Hi Talica Investments! I'm interested in ${quantity}x ${productName} (${variant}).\n\nAsking Price: ${STORE_CONFIG.CURRENCY} ${productPrice.toLocaleString()}\n\nI'd like to negotiate the price. Can we bargain?\n\nProduct Link: ${window.location.href}`;
     const whatsappUrl = `https://wa.me/254702675717?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -469,7 +470,8 @@ export default function App() {
 
   const handleWhatsAppClick = () => {
     const productName = selectedProduct.name || selectedProduct.product_name || selectedProduct.title || 'Product';
-    const message = `Hi Talica Investment! I just placed an order for ${quantity}x ${productName} (${variant}).\n\nPlease confirm my order.`;
+    const productPrice = selectedProduct.price || selectedProduct.unit_price || 0;
+    const message = `Hi Talica Investments! I just placed an order for ${quantity}x ${productName} (${variant}).\n\nAsking Price: ${STORE_CONFIG.CURRENCY} ${productPrice.toLocaleString()}\n\nPlease confirm my order.`;
     const whatsappUrl = `https://wa.me/254702675717?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -512,7 +514,7 @@ export default function App() {
           </div>
 
           <div className="hidden lg:flex items-center text-sm font-medium text-slate-600 dark:text-slate-300 px-4">
-            Welcome to Talica Investment
+            Welcome to Talica Investments
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
@@ -954,7 +956,7 @@ export default function App() {
                       className="flex-[1.5] bg-[#25D366] text-white py-6 px-10 rounded-[2rem] font-black text-lg md:text-xl hover:bg-[#128C7E] transition-all shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-4 active:scale-[0.98] group"
                     >
                       <MessageCircle className="w-7 h-7 group-hover:scale-110 transition-transform" />
-                      <span>Message Talica Investment on WhatsApp</span>
+                      <span>Message Talica Investments on WhatsApp</span>
                     </button>
                     <button 
                       onClick={handleBackToGrid}
