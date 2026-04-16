@@ -206,6 +206,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState<'grid' | 'detail'>('grid');
   const [quantity, setQuantity] = useState(1);
   const [variant, setVariant] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -407,6 +408,7 @@ export default function App() {
     setIsVideoActive(false);
     setViewMode('detail');
     setVariant(product.variants?.[0] || 'Standard');
+    setSelectedColor(product.colors?.[0] || '');
     setQuantity(1);
     setSubmitStatus('idle');
     setErrorMessage(null);
@@ -452,6 +454,7 @@ export default function App() {
       address: formData.get('address') as string,
       country: STORE_CONFIG.DEFAULT_COUNTRY,
       notes: formData.get('notes') as string,
+      selected_color: selectedColor,
     };
 
     const newErrors: Record<string, string> = {};
@@ -459,6 +462,9 @@ export default function App() {
     if (!data.phone) newErrors.phone = 'Phone number is required';
     if (!data.city) newErrors.city = 'City/Area is required';
     if (!data.address) newErrors.address = 'Delivery address is required';
+    if (selectedProduct?.colors && selectedProduct.colors.length > 0 && !selectedColor) {
+      newErrors.selected_color = 'Please select a color';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -483,6 +489,7 @@ export default function App() {
         city: data.city,
         product_name: productName,
         product_variant: variant || 'Standard',
+        selected_color: selectedColor,
         quantity: quantity,
         notes: hasDiscount 
           ? `${data.notes || ''}\n[Bulk Discount Applied: ${BULK_DISCOUNT_PERCENT}% off. Total: ${STORE_CONFIG.CURRENCY} ${finalTotal.toLocaleString()}]`.trim()
@@ -887,22 +894,50 @@ export default function App() {
                             </motion.div>
                           </div>
 
-                          <div className="absolute top-2 left-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 shadow-sm z-10">
-                            {product.category}
+                          <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-300 shadow-sm">
+                              {product.category}
+                            </div>
+                            {product.condition && (
+                              <div className="bg-teal-600/90 backdrop-blur-sm px-2 py-0.5 rounded-lg text-[9px] font-bold text-white shadow-sm w-fit uppercase tracking-wider">
+                                {product.condition}
+                              </div>
+                            )}
                           </div>
+
+                          {product.hasDiscount && (
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-red-600 text-white px-2 py-1 rounded-lg text-[10px] font-black shadow-lg animate-pulse z-10">
+                              20% OFF
+                            </div>
+                          )}
                         </div>
                         <div className="p-3 md:p-4 flex flex-col flex-1">
                           <h3 className="text-sm md:text-base font-bold mb-1 line-clamp-2 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                             {product.name || product.product_name || product.title || 'Product'}
                           </h3>
-                          {(product.stock_quantity !== undefined || product.stock !== undefined) && (
-                            <div className="flex items-center gap-1.5 mb-2">
-                              <div className={`w-1.5 h-1.5 rounded-full ${(product.stock_quantity > 0 || product.stock > 0) ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                                Stock: {product.stock_quantity ?? product.stock}
-                              </span>
-                            </div>
-                          )}
+                          
+                          {/* Colors & Condition info */}
+                          <div className="flex items-center justify-between mb-2">
+                            {product.colors && product.colors.length > 0 && (
+                              <div className="flex gap-1">
+                                {product.colors.map((color: string, idx: number) => (
+                                  <div 
+                                    key={idx} 
+                                    className="w-2.5 h-2.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm"
+                                    style={{ backgroundColor: color }}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                            {(product.stock_quantity !== undefined || product.stock !== undefined) && (
+                              <div className="flex items-center gap-1.5 ml-auto">
+                                <div className={`w-1.5 h-1.5 rounded-full ${(product.stock_quantity > 0 || product.stock > 0) ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                  {product.stock_quantity ?? product.stock} in stock
+                                </span>
+                              </div>
+                            )}
+                          </div>
                           <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mb-3 line-clamp-2 flex-1">{product.description}</p>
                           <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50 dark:border-slate-700/50">
                             <div className="font-bold text-sm md:text-lg text-teal-700 dark:text-teal-400">
@@ -1081,8 +1116,20 @@ export default function App() {
                 {/* Product Info */}
                 <div className="flex flex-col">
                   <div className="mb-6">
-                    <div className="inline-block px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 text-[10px] font-bold mb-2 uppercase tracking-wider">
-                      {selectedProduct.category}
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                      <div className="inline-block px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 text-[10px] font-bold uppercase tracking-wider">
+                        {selectedProduct.category}
+                      </div>
+                      {selectedProduct.condition && (
+                        <div className="inline-block px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider">
+                          Condition: {selectedProduct.condition}
+                        </div>
+                      )}
+                      {selectedProduct.hasDiscount && (
+                        <div className="inline-block px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black uppercase tracking-wider animate-pulse">
+                          20% OFF
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
                       <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white leading-tight">
@@ -1100,6 +1147,22 @@ export default function App() {
                         <span className="text-sm font-bold">{wishlist.includes(selectedProduct.id) ? 'In Wishlist' : 'Add to Wishlist'}</span>
                       </button>
                     </div>
+
+                    {selectedProduct.colors && selectedProduct.colors.length > 0 && (
+                      <div className="flex items-center gap-3 mb-4">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Available Colors:</span>
+                        <div className="flex gap-2">
+                          {selectedProduct.colors.map((color: string, idx: number) => (
+                            <div 
+                              key={idx} 
+                              className="w-5 h-5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm"
+                              style={{ backgroundColor: color }}
+                              title={color}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="text-2xl lg:text-3xl font-bold text-teal-700 dark:text-teal-400 mb-4">
                       {STORE_CONFIG.CURRENCY} {selectedProduct.price.toLocaleString()}
                     </div>
@@ -1246,6 +1309,42 @@ export default function App() {
                             </div>
                           </div>
 
+                          {/* Select Color Field */}
+                          {selectedProduct?.colors && selectedProduct.colors.length > 0 && (
+                            <div className="sm:col-span-2">
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Select Color *</label>
+                              <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner">
+                                {selectedProduct.colors.map((color: string, idx: number) => (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={() => setSelectedColor(color)}
+                                    className={`group relative flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all ${
+                                      selectedColor === color
+                                        ? 'bg-teal-600 border-teal-600 text-white shadow-lg'
+                                        : 'bg-white dark:bg-slate-800 border-transparent hover:border-teal-500 text-slate-600 dark:text-slate-400'
+                                    }`}
+                                  >
+                                    <div 
+                                      className="w-5 h-5 rounded-full border border-slate-200 dark:border-slate-700"
+                                      style={{ backgroundColor: color }}
+                                    />
+                                    <span className="text-xs font-bold uppercase tracking-wider">{color}</span>
+                                    {selectedColor === color && (
+                                      <motion.div 
+                                        layoutId="activeColor"
+                                        className="absolute -top-1 -right-1 w-4 h-4 bg-teal-400 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center"
+                                      >
+                                        <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+                                      </motion.div>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                              {errors.selected_color && <p className="text-red-500 text-xs mt-1">{errors.selected_color}</p>}
+                            </div>
+                          )}
+
                           <div className="grid sm:grid-cols-2 gap-6">
                             <div>
                               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">City/Area in Kenya *</label>
@@ -1331,6 +1430,11 @@ export default function App() {
                             <h4 className="font-bold text-slate-900 dark:text-white line-clamp-2">{selectedProduct.name || selectedProduct.product_name || selectedProduct.title || 'Product'}</h4>
                             <p className="text-teal-700 dark:text-teal-400 font-medium mt-1">{STORE_CONFIG.CURRENCY} {selectedProduct.price.toLocaleString()}</p>
                             {variant && <p className="text-xs text-slate-500 mt-1">Variant: {variant}</p>}
+                            {selectedColor && (
+                              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+                                Color: <span className="w-3 h-3 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm" style={{ backgroundColor: selectedColor }} /> {selectedColor}
+                              </p>
+                            )}
                             <p className="text-xs text-slate-500">Qty: {quantity}</p>
                           </div>
                         </div>

@@ -13,7 +13,10 @@ export const STORE_CONFIG = {
       price: 45000,
       description: "Luxurious 5-seater L-shaped sofa with premium fabric. Perfect for modern Kenyan living rooms.",
       image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800",
-      variants: ["Grey", "Navy Blue", "Beige"]
+      variants: ["Grey", "Navy Blue", "Beige"],
+      condition: "New",
+      hasDiscount: true,
+      colors: ["#808080", "#000080", "#F5F5DC"]
     },
     {
       id: "p2",
@@ -22,7 +25,10 @@ export const STORE_CONFIG = {
       price: 65000,
       description: "Crystal clear 4K UHD resolution with built-in smart features, Netflix, and YouTube.",
       image: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&q=80&w=800",
-      variants: ["Standard"]
+      variants: ["Standard"],
+      condition: "New",
+      hasDiscount: false,
+      colors: ["#000000"]
     },
     {
       id: "p3",
@@ -31,7 +37,10 @@ export const STORE_CONFIG = {
       price: 1200000,
       description: "Clean, low mileage, fuel-efficient hatchback. Perfect for Kenyan traffic.",
       image: "https://images.unsplash.com/photo-1590362891991-f776e747a588?auto=format&fit=crop&q=80&w=800",
-      variants: ["Silver", "White", "Black"]
+      variants: ["Silver", "White", "Black"],
+      condition: "Refurbished",
+      hasDiscount: true,
+      colors: ["#C0C0C0", "#FFFFFF", "#000000"]
     },
     {
       id: "p4",
@@ -40,7 +49,10 @@ export const STORE_CONFIG = {
       price: 8500,
       description: "Sharp, slim-fit 3-piece suit ideal for weddings and corporate events.",
       image: "https://images.unsplash.com/photo-1594938298598-70f70f36f026?auto=format&fit=crop&q=80&w=800",
-      variants: ["Size 48", "Size 50", "Size 52"]
+      variants: ["Size 48", "Size 50", "Size 52"],
+      condition: "New",
+      hasDiscount: false,
+      colors: ["#000000", "#000080", "#808080"]
     },
     {
       id: "p5",
@@ -49,7 +61,10 @@ export const STORE_CONFIG = {
       price: 85000,
       description: "Heavy-duty motorized treadmill for home workouts. Foldable design.",
       image: "https://images.unsplash.com/photo-1576678927484-cc907957088c?auto=format&fit=crop&q=80&w=800",
-      variants: ["Standard"]
+      variants: ["Standard"],
+      condition: "Like New",
+      hasDiscount: true,
+      colors: ["#000000", "#FF0000"]
     },
     {
       id: "p6",
@@ -58,7 +73,10 @@ export const STORE_CONFIG = {
       price: 55000,
       description: "Elegant glass-top dining table with 6 comfortable upholstered chairs.",
       image: "https://images.unsplash.com/photo-1617806118233-18e1c0945594?auto=format&fit=crop&q=80&w=800",
-      variants: ["Black/Glass", "Wood/White"]
+      variants: ["Black/Glass", "Wood/White"],
+      condition: "New",
+      hasDiscount: false,
+      colors: ["#000000", "#FFFFFF"]
     }
   ],
   
