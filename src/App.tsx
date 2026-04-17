@@ -916,19 +916,8 @@ export default function App() {
                             {product.name || product.product_name || product.title || 'Product'}
                           </h3>
                           
-                          {/* Colors & Condition info */}
+                          {/* Stock info */}
                           <div className="flex items-center justify-between mb-2">
-                            {product.colors && product.colors.length > 0 && (
-                              <div className="flex gap-1">
-                                {product.colors.map((color: string, idx: number) => (
-                                  <div 
-                                    key={idx} 
-                                    className="w-2.5 h-2.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm"
-                                    style={{ backgroundColor: color }}
-                                  />
-                                ))}
-                              </div>
-                            )}
                             {(product.stock_quantity !== undefined || product.stock !== undefined) && (
                               <div className="flex items-center gap-1.5 ml-auto">
                                 <div className={`w-1.5 h-1.5 rounded-full ${(product.stock_quantity > 0 || product.stock > 0) ? 'bg-emerald-500' : 'bg-red-500'}`} />
@@ -938,7 +927,22 @@ export default function App() {
                               </div>
                             )}
                           </div>
+                          {/* Price and Colors */}
                           <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mb-3 line-clamp-2 flex-1">{product.description}</p>
+                          
+                          {product.colors && product.colors.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-3">
+                              {product.colors.map((color: string, idx: number) => (
+                                <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 shadow-sm">
+                                  {color.startsWith('#') && (
+                                    <div className="w-2 h-2 rounded-full border border-black/5" style={{ backgroundColor: color }} />
+                                  )}
+                                  <span className="text-slate-600 dark:text-slate-400 uppercase tracking-tighter">{color}</span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
                           <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50 dark:border-slate-700/50">
                             <div className="font-bold text-sm md:text-lg text-teal-700 dark:text-teal-400">
                               {STORE_CONFIG.CURRENCY} {product.price.toLocaleString()}
@@ -1148,24 +1152,23 @@ export default function App() {
                       </button>
                     </div>
 
-                    {selectedProduct.colors && selectedProduct.colors.length > 0 && (
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Available Colors:</span>
-                        <div className="flex gap-2">
-                          {selectedProduct.colors.map((color: string, idx: number) => (
-                            <div 
-                              key={idx} 
-                              className="w-5 h-5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm"
-                              style={{ backgroundColor: color }}
-                              title={color}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <div className="text-2xl lg:text-3xl font-bold text-teal-700 dark:text-teal-400 mb-4">
+                    <div className="text-2xl lg:text-3xl font-bold text-teal-700 dark:text-teal-400 mb-2">
                       {STORE_CONFIG.CURRENCY} {selectedProduct.price.toLocaleString()}
                     </div>
+                    
+                    {selectedProduct.colors && selectedProduct.colors.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {selectedProduct.colors.map((color: string, idx: number) => (
+                          <div key={idx} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+                            {color.startsWith('#') && (
+                              <div className="w-3.5 h-3.5 rounded-full border border-black/10" style={{ backgroundColor: color }} />
+                            )}
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{color}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {(selectedProduct.stock_quantity !== undefined || selectedProduct.stock !== undefined) && (
                       <div className="flex items-center gap-2 mb-4">
                         <div className={`w-2 h-2 rounded-full ${(selectedProduct.stock_quantity > 0 || selectedProduct.stock > 0) ? 'bg-emerald-500' : 'bg-red-500'}`} />
