@@ -204,6 +204,28 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'detail'>('grid');
+  
+  // History management for back button
+  useEffect(() => {
+    // Initialize history state on mount
+    if (window.history.state?.view !== 'grid') {
+      window.history.replaceState({ view: 'grid' }, '');
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state?.view === 'grid') {
+        // If we popped back to grid, just update the state
+        setViewMode('grid');
+        setSelectedProduct(null);
+        setActiveImage(null);
+        setSubmitStatus('idle');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const [quantity, setQuantity] = useState(1);
   const [variant, setVariant] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
@@ -407,8 +429,11 @@ export default function App() {
     setActiveImage(product.image || product.image_url || product.imageUrl || product.media_url || null);
     setIsVideoActive(false);
     setViewMode('detail');
-    setVariant(product.variants?.[0] || 'Standard');
-    setSelectedColor(product.colors?.[0] || '');
+    // Push history state to handle back button
+    window.history.pushState({ view: 'detail' }, '');
+
+    setVariant(Array.isArray(product.variants) ? (product.variants[0] || 'Standard') : 'Standard');
+    setSelectedColor(Array.isArray(product.colors) ? (product.colors[0] || '') : '');
     setQuantity(1);
     setSubmitStatus('idle');
     setErrorMessage(null);
@@ -420,7 +445,13 @@ export default function App() {
     setViewMode('grid');
     setSelectedProduct(null);
     setActiveImage(null);
+    setSubmitStatus('idle');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // If the current history state is 'detail', go back to mirror history
+    if (window.history.state?.view === 'detail') {
+      window.history.back();
+    }
   };
 
   const handleCancelAuth = () => {
@@ -927,25 +958,29 @@ export default function App() {
                               </div>
                             )}
                           </div>
-                          {/* Price and Colors */}
                           <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mb-3 line-clamp-2 flex-1">{product.description}</p>
                           
-                          {product.colors && product.colors.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {product.colors.map((color: string, idx: number) => (
-                                <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 shadow-sm">
-                                  {color.startsWith('#') && (
-                                    <div className="w-2 h-2 rounded-full border border-black/5" style={{ backgroundColor: color }} />
-                                  )}
-                                  <span className="text-slate-600 dark:text-slate-400 uppercase tracking-tighter">{color}</span>
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
                           <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50 dark:border-slate-700/50">
-                            <div className="font-bold text-sm md:text-lg text-teal-700 dark:text-teal-400">
-                              {STORE_CONFIG.CURRENCY} {product.price.toLocaleString()}
+                            <div className="flex flex-col gap-1">
+                              <div className="font-bold text-sm md:text-lg text-teal-700 dark:text-teal-400">
+                                {STORE_CONFIG.CURRENCY} {product.price.toLocaleString()}
+                              </div>
+                              {Array.isArray(product.colors) && product.colors.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {product.colors.slice(0, 3).map((color: string, idx: number) => (
+                                    <div key={idx} className="flex items-center gap-1">
+                                      <div 
+                                        className="w-2.5 h-2.5 rounded-full border border-black/5 shadow-sm" 
+                                        style={{ backgroundColor: color }}
+                                      />
+                                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{color}</span>
+                                    </div>
+                                  ))}
+                                  {product.colors.length > 3 && (
+                                    <span className="text-[8px] font-bold text-slate-400">+{product.colors.length - 3}</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                             <div className="bg-slate-900 dark:bg-teal-600 text-white p-2 rounded-lg group-hover:bg-teal-600 dark:group-hover:bg-teal-500 transition-colors">
                               <ShoppingBag className="w-4 h-4" />
@@ -1156,16 +1191,17 @@ export default function App() {
                       {STORE_CONFIG.CURRENCY} {selectedProduct.price.toLocaleString()}
                     </div>
                     
-                    {selectedProduct.colors && selectedProduct.colors.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {selectedProduct.colors.map((color: string, idx: number) => (
-                          <div key={idx} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
-                            {color.startsWith('#') && (
-                              <div className="w-3.5 h-3.5 rounded-full border border-black/10" style={{ backgroundColor: color }} />
-                            )}
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{color}</span>
-                          </div>
-                        ))}
+                    {Array.isArray(selectedProduct.colors) && selectedProduct.colors.length > 0 && (
+                      <div className="mb-6">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Available Colors</span>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedProduct.colors.map((color: string, idx: number) => (
+                            <div key={idx} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm transition-transform hover:scale-105">
+                              <div className="w-4 h-4 rounded-full border border-black/10 shadow-inner" style={{ backgroundColor: color }} />
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{color}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
@@ -1185,7 +1221,7 @@ export default function App() {
                   </div>
 
                   <div className="space-y-6 p-4 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    {selectedProduct.variants && selectedProduct.variants.length > 0 && (
+                    {Array.isArray(selectedProduct.variants) && selectedProduct.variants.length > 0 && (
                       <div>
                         <label className="block text-sm font-bold text-slate-900 dark:text-white mb-2">Select Variant</label>
                         <div className="flex flex-wrap gap-2">
@@ -1313,7 +1349,7 @@ export default function App() {
                           </div>
 
                           {/* Select Color Field */}
-                          {selectedProduct?.colors && selectedProduct.colors.length > 0 && (
+                          {Array.isArray(selectedProduct?.colors) && selectedProduct.colors.length > 0 && (
                             <div className="sm:col-span-2">
                               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Select Color *</label>
                               <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner">
