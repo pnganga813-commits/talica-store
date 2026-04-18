@@ -460,6 +460,14 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const whatsappRedirectUrl = useMemo(() => {
+    if (!selectedProduct) return '';
+    const productName = selectedProduct.name || selectedProduct.product_name || selectedProduct.title || 'Product';
+    const imageUrl = activeImage || selectedProduct.image || selectedProduct.image_url || selectedProduct.imageUrl || selectedProduct.media_url || '';
+    const message = `I love this ${productName}! Is it available? I'm interested in this one: ${imageUrl}`;
+    return `https://wa.me/254702675717?text=${encodeURIComponent(message)}`;
+  }, [selectedProduct, activeImage]);
+
     const handleNegotiate = () => {
     const productName = selectedProduct.name || selectedProduct.product_name || selectedProduct.title || 'Product';
     const productPrice = selectedProduct.price || selectedProduct.unit_price || 0;
@@ -549,16 +557,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (submitStatus === 'success') {
+    if (submitStatus === 'success' && whatsappRedirectUrl) {
       // Small delay to ensure state and UI are updated before redirect
       const timer = setTimeout(() => {
-        const message = `I love this product is it available and can i get pictures of it?`;
-        const whatsappUrl = `https://wa.me/254702675717?text=${encodeURIComponent(message)}`;
-        window.location.href = whatsappUrl;
+        window.location.href = whatsappRedirectUrl;
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [submitStatus]);
+  }, [submitStatus, whatsappRedirectUrl]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-50 selection:bg-teal-100 dark:selection:bg-teal-900/30 transition-colors duration-300">
@@ -1070,7 +1076,7 @@ export default function App() {
                   
                   <div className="flex flex-col sm:flex-row gap-4 w-full max-w-3xl justify-center items-stretch px-4">
                     <a 
-                      href="https://wa.me/254702675717?text=I%20love%20this%20product%20is%20it%20available%20and%20can%20i%20get%20pictures%20of%20it?"
+                      href={whatsappRedirectUrl}
                       className="flex-1 bg-[#25D366] text-white py-4 px-6 rounded-2xl font-bold text-lg hover:bg-[#128C7E] transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 active:scale-[0.98] group"
                     >
                       <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
