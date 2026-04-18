@@ -6,7 +6,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { STORE_CONFIG } from './config';
 import { supabase } from './lib/supabase';
-import { ShoppingBag, Clock, CheckCircle2, AlertCircle, Search, MessageCircle, MapPin, X, Sun, Moon, LogOut, Mail, Sparkles, PlayCircle, RefreshCw, ChevronDown, Bell, Heart, Facebook, Instagram, Twitter, Youtube } from 'lucide-react';
+import { ShoppingBag, Clock, CheckCircle2, AlertCircle, Search, MessageCircle, MapPin, X, Sun, Moon, LogOut, Mail, Sparkles, PlayCircle, RefreshCw, ChevronDown, Bell, Heart, Facebook, Instagram, Twitter, Youtube, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const SofaIcon = ({ className }: { className?: string }) => {
@@ -433,7 +433,7 @@ export default function App() {
     window.history.pushState({ view: 'detail' }, '');
 
     setVariant(Array.isArray(product.variants) ? (product.variants[0] || 'Standard') : 'Standard');
-    setSelectedColor(Array.isArray(product.colors) ? (product.colors[0] || '') : '');
+    setSelectedColor(''); // Do not pre-select, force user to choose if colors are available
     setQuantity(1);
     setSubmitStatus('idle');
     setErrorMessage(null);
@@ -493,7 +493,7 @@ export default function App() {
     if (!data.phone) newErrors.phone = 'Phone number is required';
     if (!data.city) newErrors.city = 'City/Area is required';
     if (!data.address) newErrors.address = 'Delivery address is required';
-    if (selectedProduct?.colors && selectedProduct.colors.length > 0 && !selectedColor) {
+    if (Array.isArray(selectedProduct?.colors) && selectedProduct.colors.length > 0 && !selectedColor) {
       newErrors.selected_color = 'Please select a color';
     }
 
@@ -512,15 +512,13 @@ export default function App() {
       const discountAmount = hasDiscount ? (subtotal * BULK_DISCOUNT_PERCENT) / 100 : 0;
       const finalTotal = subtotal - discountAmount;
 
-      const orderData = {
+      const orderData: any = {
         customer_name: data.customer_name,
         phone: data.phone,
-        email: data.email,
         address: data.address,
         city: data.city,
         product_name: productName,
         product_variant: variant || 'Standard',
-        selected_color: selectedColor,
         quantity: quantity,
         notes: hasDiscount 
           ? `${data.notes || ''}\n[Bulk Discount Applied: ${BULK_DISCOUNT_PERCENT}% off. Total: ${STORE_CONFIG.CURRENCY} ${finalTotal.toLocaleString()}]`.trim()
@@ -528,6 +526,10 @@ export default function App() {
         status: 'pending',
         created_at: new Date().toISOString()
       };
+
+      if (selectedColor) {
+        orderData.selected_color = selectedColor;
+      }
 
       const { error } = await supabase
         .from('orders')
@@ -546,13 +548,17 @@ export default function App() {
     }
   };
 
-  const handleWhatsAppClick = () => {
-    const productName = selectedProduct.name || selectedProduct.product_name || selectedProduct.title || 'Product';
-    const productPrice = selectedProduct.price || selectedProduct.unit_price || 0;
-    const message = `Hi Talica Investments! I just placed an order for ${quantity}x ${productName} (${variant}).\n\nAsking Price: ${STORE_CONFIG.CURRENCY} ${productPrice.toLocaleString()}\n\nPlease confirm my order.`;
-    const whatsappUrl = `https://wa.me/254702675717?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-  };
+  useEffect(() => {
+    if (submitStatus === 'success') {
+      // Small delay to ensure state and UI are updated before redirect
+      const timer = setTimeout(() => {
+        const message = `I love this product is it available and can i get pictures of it?`;
+        const whatsappUrl = `https://wa.me/254702675717?text=${encodeURIComponent(message)}`;
+        window.location.href = whatsappUrl;
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [submitStatus]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-50 selection:bg-teal-100 dark:selection:bg-teal-900/30 transition-colors duration-300">
@@ -1062,19 +1068,26 @@ export default function App() {
                     Talica will contact you soon via WhatsApp, phone call, or message to confirm about the product. Thank you for choosing us!
                   </p>
                   
-                  <div className="flex flex-col sm:flex-row gap-6 w-full max-w-3xl justify-center items-stretch px-4">
-                    <button 
-                      onClick={handleWhatsAppClick}
-                      className="flex-[1.5] bg-[#25D366] text-white py-6 px-10 rounded-[2rem] font-black text-lg md:text-xl hover:bg-[#128C7E] transition-all shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-4 active:scale-[0.98] group"
+                  <div className="flex flex-col sm:flex-row gap-4 w-full max-w-3xl justify-center items-stretch px-4">
+                    <a 
+                      href="https://wa.me/254702675717?text=I%20love%20this%20product%20is%20it%20available%20and%20can%20i%20get%20pictures%20of%20it?"
+                      className="flex-1 bg-[#25D366] text-white py-4 px-6 rounded-2xl font-bold text-lg hover:bg-[#128C7E] transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 active:scale-[0.98] group"
                     >
-                      <MessageCircle className="w-7 h-7 group-hover:scale-110 transition-transform" />
-                      <span>Message Talica Investments on WhatsApp</span>
-                    </button>
+                      <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                      <span>Open WhatsApp</span>
+                    </a>
+                    <a 
+                      href="tel:254702675717"
+                      className="flex-1 bg-white dark:bg-slate-800 text-slate-900 dark:text-white py-4 px-6 rounded-2xl font-bold text-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98] border-2 border-slate-200 dark:border-slate-700 shadow-lg flex items-center justify-center gap-3 group"
+                    >
+                      <Phone className="w-5 h-5 group-hover:scale-110 transition-transform text-slate-500 dark:text-slate-400" />
+                      Call Us
+                    </a>
                     <button 
                       onClick={handleBackToGrid}
-                      className="flex-1 bg-white dark:bg-slate-800 text-slate-900 dark:text-white py-6 px-10 rounded-[2rem] font-bold text-lg md:text-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98] border-2 border-slate-200 dark:border-slate-700 shadow-lg"
+                      className="flex-1 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white py-4 px-6 rounded-2xl font-bold text-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-all active:scale-[0.98] shadow-lg flex items-center justify-center"
                     >
-                      Continue Shopping
+                      <span>Continue Shopping</span>
                     </button>
                   </div>
                 </motion.div>
@@ -1324,24 +1337,24 @@ export default function App() {
                             </button>
                           </div>
                         )}
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                          <div className="grid sm:grid-cols-2 gap-6">
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                          <div className="grid sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Full Name *</label>
+                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Full Name *</label>
                               <input 
                                 type="text" 
                                 name="customer_name"
-                                className={`w-full px-4 py-3 rounded-xl border ${errors.customer_name ? 'border-red-300 dark:border-red-500/50 focus:ring-red-500' : 'border-slate-200 dark:border-slate-600 focus:ring-teal-500'} focus:border-transparent focus:ring-2 outline-none transition-all bg-white dark:bg-slate-900 dark:text-white`}
+                                className={`w-full px-3 py-2 rounded-xl border ${errors.customer_name ? 'border-red-300 dark:border-red-500/50 focus:ring-red-500' : 'border-slate-200 dark:border-slate-600 focus:ring-teal-500'} focus:border-transparent focus:ring-2 outline-none transition-all bg-white dark:bg-slate-900 dark:text-white text-sm`}
                                 placeholder="e.g. Jane Doe"
                               />
                               {errors.customer_name && <p className="text-red-500 text-xs mt-1">{errors.customer_name}</p>}
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Phone Number *</label>
+                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Phone Number *</label>
                               <input 
                                 type="tel" 
                                 name="phone"
-                                className={`w-full px-4 py-3 rounded-xl border ${errors.phone ? 'border-red-300 dark:border-red-500/50 focus:ring-red-500' : 'border-slate-200 dark:border-slate-600 focus:ring-teal-500'} focus:border-transparent focus:ring-2 outline-none transition-all bg-white dark:bg-slate-900 dark:text-white`}
+                                className={`w-full px-3 py-2 rounded-xl border ${errors.phone ? 'border-red-300 dark:border-red-500/50 focus:ring-red-500' : 'border-slate-200 dark:border-slate-600 focus:ring-teal-500'} focus:border-transparent focus:ring-2 outline-none transition-all bg-white dark:bg-slate-900 dark:text-white text-sm`}
                                 placeholder="07XX XXX XXX"
                               />
                               {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
@@ -1351,30 +1364,30 @@ export default function App() {
                           {/* Select Color Field */}
                           {Array.isArray(selectedProduct?.colors) && selectedProduct.colors.length > 0 && (
                             <div className="sm:col-span-2">
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Select Color *</label>
-                              <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner">
+                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Select Color *</label>
+                              <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner">
                                 {selectedProduct.colors.map((color: string, idx: number) => (
                                   <button
                                     key={idx}
                                     type="button"
                                     onClick={() => setSelectedColor(color)}
-                                    className={`group relative flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all ${
+                                    className={`group relative flex items-center gap-2 px-2.5 py-1.5 rounded-xl border-2 transition-all ${
                                       selectedColor === color
-                                        ? 'bg-teal-600 border-teal-600 text-white shadow-lg'
+                                        ? 'bg-teal-600 border-teal-600 text-white shadow-md'
                                         : 'bg-white dark:bg-slate-800 border-transparent hover:border-teal-500 text-slate-600 dark:text-slate-400'
                                     }`}
                                   >
                                     <div 
-                                      className="w-5 h-5 rounded-full border border-slate-200 dark:border-slate-700"
+                                      className="w-4 h-4 rounded-full border border-slate-200 dark:border-slate-700"
                                       style={{ backgroundColor: color }}
                                     />
-                                    <span className="text-xs font-bold uppercase tracking-wider">{color}</span>
+                                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">{color}</span>
                                     {selectedColor === color && (
                                       <motion.div 
                                         layoutId="activeColor"
-                                        className="absolute -top-1 -right-1 w-4 h-4 bg-teal-400 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center"
+                                        className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-teal-400 rounded-full border border-white dark:border-slate-900 flex items-center justify-center"
                                       >
-                                        <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+                                        <CheckCircle2 className="w-2 h-2 text-white" />
                                       </motion.div>
                                     )}
                                   </button>
@@ -1384,55 +1397,44 @@ export default function App() {
                             </div>
                           )}
 
-                          <div className="grid sm:grid-cols-2 gap-6">
+                          <div className="grid sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">City/Area in Kenya *</label>
+                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">City/Area in Kenya *</label>
                               <input 
                                 type="text" 
                                 name="city"
-                                className={`w-full px-4 py-3 rounded-xl border ${errors.city ? 'border-red-300 dark:border-red-500/50 focus:ring-red-500' : 'border-slate-200 dark:border-slate-600 focus:ring-teal-500'} focus:border-transparent focus:ring-2 outline-none transition-all bg-white dark:bg-slate-900 dark:text-white`}
+                                className={`w-full px-3 py-2 rounded-xl border ${errors.city ? 'border-red-300 dark:border-red-500/50 focus:ring-red-500' : 'border-slate-200 dark:border-slate-600 focus:ring-teal-500'} focus:border-transparent focus:ring-2 outline-none transition-all bg-white dark:bg-slate-900 dark:text-white text-sm`}
                                 placeholder="e.g. Kilimani, Westlands"
                               />
                               {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email (Optional)</label>
+                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Delivery Address *</label>
                               <input 
-                                type="email" 
-                                name="email"
-                                defaultValue={user?.email || ''}
-                                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 focus:ring-teal-500 focus:border-transparent focus:ring-2 outline-none transition-all bg-white dark:bg-slate-900 dark:text-white"
-                                placeholder="jane@example.com"
+                                type="text"
+                                name="address"
+                                className={`w-full px-3 py-2 rounded-xl border ${errors.address ? 'border-red-300 dark:border-red-500/50 focus:ring-red-500' : 'border-slate-200 dark:border-slate-600 focus:ring-teal-500'} focus:border-transparent focus:ring-2 outline-none transition-all bg-white dark:bg-slate-900 dark:text-white text-sm`}
+                                placeholder="Building, apartment, street..."
                               />
+                              {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
                             </div>
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Delivery Address *</label>
-                            <textarea 
-                              name="address"
-                              rows={2}
-                              className={`w-full px-4 py-3 rounded-xl border ${errors.address ? 'border-red-300 dark:border-red-500/50 focus:ring-red-500' : 'border-slate-200 dark:border-slate-600 focus:ring-teal-500'} focus:border-transparent focus:ring-2 outline-none transition-all bg-white dark:bg-slate-900 dark:text-white resize-none`}
-                              placeholder="Building name, apartment number, street..."
-                            />
-                            {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Additional Notes (Optional)</label>
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Additional Notes (Optional)</label>
                             <textarea 
                               name="notes"
                               rows={2}
-                              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 focus:ring-teal-500 focus:border-transparent focus:ring-2 outline-none transition-all bg-white dark:bg-slate-900 dark:text-white resize-none"
+                              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 focus:ring-teal-500 focus:border-transparent focus:ring-2 outline-none transition-all bg-white dark:bg-slate-900 dark:text-white resize-none text-sm"
                               placeholder="Any special instructions for delivery?"
                             />
                           </div>
 
-                          <div className="flex flex-col gap-4">
+                          <div className="flex flex-col gap-3 mt-2">
                             <button 
                               type="submit" 
                               disabled={isSubmitting || submitStatus === 'success'}
-                              className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-teal-700 transition-all shadow-lg shadow-teal-600/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2"
+                              className="w-full bg-teal-600 text-white py-3 rounded-xl font-bold text-base hover:bg-teal-700 transition-all shadow-lg shadow-teal-600/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2"
                             >
                               {isSubmitting ? (
                                 <>
